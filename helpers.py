@@ -22,3 +22,9 @@ def estimate_loss(model, loader, crit):
     loss = crit(predictions, y)
     test_loss.append(loss.item())
   return np.mean(test_loss)
+
+def normalize_tensor(tensor):
+    min_val = torch.min(tensor)
+    max_val = torch.max(tensor)
+    tensor = (tensor - min_val) / (max_val - min_val)
+    return tensor
