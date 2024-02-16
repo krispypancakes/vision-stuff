@@ -6,6 +6,7 @@ import numpy as np
 import pickle
 from tqdm import trange
 import matplotlib.pyplot as plt
+import time
 from helpers import get_model_size, estimate_loss, normalize_tensor
 
 
@@ -107,7 +108,7 @@ class ResNet18Modular(nn.Module):
 
 def main():
   device = 'cuda' if torch.cuda.is_available() else 'cpu'
-  epochs = 10
+  epochs = 50
   lr = 0.0001
 
   train_ds = CiFaData(stage="train", device=device)
@@ -131,7 +132,7 @@ def main():
   losses = []
   raw_losses = []
   val_losses = []
-
+  time1 = time.time()
   for i in (t:=trange(epochs)):
     epoch_loss = []
     for x, y in train_loader:
@@ -145,9 +146,10 @@ def main():
     losses.append(np.mean(epoch_loss))
     val_losses.append(estimate_loss(res18, val_loader, criterion))
     t.set_description(f"epoch {i+1} | training loss: {losses[-1]:.4f} | validation loss: {val_losses[-1]:.4f}")
-    
+  duration = time.time() - time1
   test_loss = estimate_loss(res18, test_loader, criterion) 
   print(f'final test loss is : {test_loss}')
+  print(f'this took {duration / 60:.4f} minutes for training')
 
 
 if __name__ == "__main__":
