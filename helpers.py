@@ -16,11 +16,16 @@ def get_model_size(model):
 
 @torch.no_grad()
 def estimate_loss(model, loader, crit):
+  # torch.no_grad tells torch that there there's no grad -> tensors
+  # model.eval() takes care of batchnorm or dropout
+  model.eval()
   test_loss = []
   for x, y in loader:
     predictions = model(x)
     loss = crit(predictions, y)
     test_loss.append(loss.item())
+  # put it back in training mode
+  model.train()
   return np.mean(test_loss)
 
 def normalize_tensor(tensor):
