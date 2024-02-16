@@ -82,31 +82,27 @@ class ResNet18Modular(nn.Module):
     self.fc = nn.Linear(512, 10)
   def forward(self, x):
     # ---------- Block0 ---------- 
-    x = self.block0(x)
-    # print(f'shape after block 0 : {x.shape}')
+    x = self.block0(x) # (B, 64, 8, 8)
     # ---------- Block1 ---------- 
     x_skip = x
     x = self.block1(x)
     x = self.relu1(x+x_skip)
-    # print(f'shape after block 1 : {x.shape}')
     # ---------- Block2 ---------- 
-    x_skip = self.match_dim2(x)
-    # print(f'shape after match in block 2 : {x_skip.shape}')
+    x_skip = self.match_dim2(x) # (B, 128, 4, 4)
     x = self.block2(x)
-    # print(f'shape after block 2 : {x.shape}')
     x = self.relu2(x+x_skip)
     # ---------- Block3 ---------- 
-    x_skip = self.match_dim3(x)
+    x_skip = self.match_dim3(x) # (B, 256, 2, 2)
     x = self.block3(x)
     x = self.relu3(x+x_skip)
     # ---------- Block4 ---------- 
-    x_skip = self.match_dim4(x)
+    x_skip = self.match_dim4(x) # (B, 512, 1, 1)
     x = self.block4(x)
     x = self.relu4(x+x_skip)
     # ---------- Linear ----------
     x = self.avg_pool(x)
-    x = torch.flatten(x, start_dim=1)
-    return self.fc(x)
+    x = torch.flatten(x, start_dim=1) # (B, 512)
+    return self.fc(x) # (B, 10)
 
 
 def main():
