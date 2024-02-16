@@ -144,7 +144,7 @@ def main():
       epoch_loss.append(loss.item())
     losses.append(np.mean(epoch_loss))
     val_losses.append(estimate_loss(res18, val_loader, criterion))
-    t.set_description(f"epoch {i+1} | training loss: {losses[-1]}:.4f | validation loss: {val_losses[-1]}:.4f")
+    t.set_description(f"epoch {i+1} | training loss: {losses[-1]:.4f} | validation loss: {val_losses[-1]:.4f}")
     
   test_loss = estimate_loss(res18, test_loader, criterion) 
   print(f'final test loss is : {test_loss}')
