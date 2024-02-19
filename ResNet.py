@@ -44,6 +44,7 @@ class SubBlock(nn.Module):
     super().__init__()
     self.block = nn.Sequential(
       nn.Conv2d(in_channels=inchannels, out_channels=outchannels, kernel_size=kernelsize, padding=padding, stride=stride),
+      nn.BatchNorm2d(outchannels),
       nn.ReLU(),
       nn.Conv2d(in_channels=outchannels, out_channels=outchannels, kernel_size=kernelsize, padding=padding, stride=1)
     )
@@ -65,6 +66,7 @@ class ResNet18Modular(nn.Module):
     super().__init__()
     self.block0 = nn.Sequential(
       nn.Conv2d(in_channels=3, kernel_size=7, out_channels=64, stride=2, padding=3), 
+      nn.BatchNorm2d(64), 
       nn.ReLU(),
       nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
     )
@@ -108,7 +110,7 @@ class ResNet18Modular(nn.Module):
 
 def main():
   device = 'cuda' if torch.cuda.is_available() else 'cpu'
-  epochs = 50
+  epochs = 1
   lr = 0.0001
 
   train_ds = CiFaData(stage="train", device=device)
