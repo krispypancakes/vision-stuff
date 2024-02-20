@@ -33,7 +33,7 @@ class CiFaData(Dataset):
     self.y_data = torch.tensor(self.y_data, device=self.device)
     self.x_data = normalize_tensor(torch.tensor(np.vstack(self.x_data).reshape(-1, 3, 32, 32), device=self.device)) # from list to vstack; results in (N, 3, 32, 32)
   def __len__(self):
-    return len(self.y_data)
+    return self.y_data.shape[0]
   def __getitem__(self, idx):
     if self.transform:
       return self.transform(self.x_data[idx]), self.y_data[idx]
