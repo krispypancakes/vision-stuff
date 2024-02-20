@@ -28,8 +28,12 @@ def estimate_loss(model, loader, crit):
   model.train()
   return np.mean(test_loss)
 
-def normalize_tensor(tensor):
+def normalize_tensor(tensor, _torch=True):
+  if type(tensor) == torch.tensor:
     min_val = torch.min(tensor)
     max_val = torch.max(tensor)
-    tensor = (tensor - min_val) / (max_val - min_val)
-    return tensor
+  else:
+    # what we do with tiny tensors
+    min_val = tensor.min()
+    max_val = tensor.max()
+  return (tensor - min_val) / (max_val - min_val)
