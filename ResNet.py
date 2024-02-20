@@ -85,10 +85,9 @@ class ResNet18Modular(nn.Module):
     self.fc = nn.Linear(512, 10)
   def forward(self, x):
     # ---------- Block0 ---------- 
-    x = self.block0(x) # (B, 64, 8, 8)
+    x_skip = self.block0(x) # (B, 64, 8, 8)
     # ---------- Block1 ---------- 
-    x_skip = x
-    x = self.block1(x)
+    x = self.block1(x_skip)
     x = self.relu1(x+x_skip)
     # ---------- Block2 ---------- 
     x_skip = self.match_dim2(x) # (B, 128, 4, 4)
@@ -110,7 +109,7 @@ class ResNet18Modular(nn.Module):
 
 def main():
   device = 'cuda' if torch.cuda.is_available() else 'cpu'
-  epochs = 1
+  epochs = 42
   lr = 0.0001
 
   train_ds = CiFaData(stage="train", device=device)
