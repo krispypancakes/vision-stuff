@@ -121,7 +121,7 @@ def main():
   device = 'cuda' if torch.cuda.is_available() else 'cpu'
   epochs = 300
   lr = 0.001
-  # adding transforms slows it down by factor of 8 ...mh
+
   train_ds = CiFaData(stage="train", device=device, transform=transforms.RandomRotation(degrees=(0, 180)))
   val_ds = CiFaData(stage="val", device=device)
   test_ds = CiFaData(stage="test", device=device)
