@@ -15,14 +15,14 @@ def get_model_size(model):
   return size_all_mb
 
 @torch.no_grad()
-def estimate_loss(model, loader, crit):
+def estimate_loss(model, loader, crit, device):
   # torch.no_grad tells torch that there there's no grad -> tensors
   # model.eval() takes care of batchnorm or dropout
   model.eval()
   test_loss = []
   for x, y in loader:
-    predictions = model(x)
-    loss = crit(predictions, y)
+    predictions = model(x.to(device))
+    loss = crit(predictions, y.to(device))
     test_loss.append(loss.item())
   # put it back in training mode
   model.train()
