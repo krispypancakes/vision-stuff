@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
+import torchvision.transforms as transforms
 import torch.optim as optim
 import numpy as np
 import pickle
@@ -109,10 +110,10 @@ class ResNet18Modular(nn.Module):
 
 def main():
   device = 'cuda' if torch.cuda.is_available() else 'cpu'
-  epochs = 42
-  lr = 0.0001
-
-  train_ds = CiFaData(stage="train", device=device)
+  epochs = 300
+  lr = 0.001
+  # adding transforms slows it down by factor of 8 ...mh
+  train_ds = CiFaData(stage="train", device=device, transform=transforms.RandomRotation(degrees=(0, 180)))
   val_ds = CiFaData(stage="val", device=device)
   test_ds = CiFaData(stage="test", device=device)
 
@@ -124,10 +125,11 @@ def main():
   res18.to(device)
 
   optimizer = optim.Adam(params=[p for p in res18.parameters() if p.requires_grad==True], lr=lr)
+  scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, mode='min', patience=0)
+
   criterion = nn.CrossEntropyLoss()
 
   get_model_size(res18)
-
 
   # training loop
   losses = []
@@ -146,12 +148,14 @@ def main():
       epoch_loss.append(loss.item())
     losses.append(np.mean(epoch_loss))
     val_losses.append(estimate_loss(res18, val_loader, criterion))
+    scheduler.step(metrics=val_losses[-1])
     t.set_description(f"epoch {i+1} | training loss: {losses[-1]:.4f} | validation loss: {val_losses[-1]:.4f}")
   duration = time.time() - time1
   test_loss = estimate_loss(res18, test_loader, criterion) 
   print(f'final test loss is : {test_loss}')
   print(f'this took {duration / 60:.4f} minutes for training')
 
+  # TODO: print results of training run or add tensorboard / mlflow tracking
 
 if __name__ == "__main__":
   main()
