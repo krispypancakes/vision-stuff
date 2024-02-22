@@ -19,7 +19,7 @@ def estimate_loss(model, loader, crit, device):
   # torch.no_grad tells torch that there there's no grad -> tensors
   # model.eval() takes care of batchnorm or dropout
   model.eval()
-  total_loss, total_count = 0, 0
+  correct, total_loss, total_count = 0, 0, 0
   
   for x, y in loader:
     x, y = x.to(device), y.to(device)
@@ -27,10 +27,10 @@ def estimate_loss(model, loader, crit, device):
     loss = crit(predictions, y)
     total_loss += loss.item() * x.shape[0]
     total_count += x.shape[0]
+    correct += (predictions == y).sum().item()
 
-  avg_loss = total_loss / total_count
   model.train()
-  return avg_loss
+  return total_loss/total_count, correct/total_count
 
 def normalize_tensor(tensor, _torch=True):
   if type(tensor) == torch.tensor:
