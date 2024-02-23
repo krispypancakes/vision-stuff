@@ -1,6 +1,5 @@
 """ useful helpers """
 import torch
-import numpy as np
 
 
 def get_model_size(model):
@@ -26,8 +25,7 @@ def estimate_loss(model, loader, crit, device):
     loss = crit(predictions, y)
     total_loss += loss.item() * x.shape[0]
     total_count += x.shape[0]
-    correct += (predictions.argmax() == y).sum().item()
-  model.train()
+    correct += (predictions.argmax(dim=1) == y).sum().item()
   return total_loss/total_count, correct/total_count
 
 def normalize_tensor(tensor, _torch=True):
