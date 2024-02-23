@@ -26,7 +26,7 @@ def estimate_loss(model, loader, crit, device):
     loss = crit(predictions, y)
     total_loss += loss.item() * x.shape[0]
     total_count += x.shape[0]
-    correct += (predictions == y).sum().item()
+    correct += (predictions.argmax() == y).sum().item()
   model.train()
   return total_loss/total_count, correct/total_count
 
