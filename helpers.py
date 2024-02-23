@@ -20,7 +20,6 @@ def estimate_loss(model, loader, crit, device):
   # model.eval() takes care of batchnorm or dropout
   model.eval()
   correct, total_loss, total_count = 0, 0, 0
-  
   for x, y in loader:
     x, y = x.to(device), y.to(device)
     predictions = model(x)
@@ -28,7 +27,6 @@ def estimate_loss(model, loader, crit, device):
     total_loss += loss.item() * x.shape[0]
     total_count += x.shape[0]
     correct += (predictions == y).sum().item()
-
   model.train()
   return total_loss/total_count, correct/total_count
 
