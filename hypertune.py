@@ -2,7 +2,8 @@
 from ray import train, tune
 from ray.train import Checkpoint
 from ray.tune.schedulers import ASHAScheduler
-
+import tempfile
+import os
 import torch
 from torch import nn
 import torch.optim as optim
@@ -29,7 +30,8 @@ class CiFaData(Dataset):
       raise ValueError("Invalid stage, choose from train, val, test.")
     self.x_data, self.y_data = [], []
     for batch in batch_collection:
-      with open(f"../data/cifar-10-batches-py/{batch}", "rb") as f:
+      # print(os.system(f"ls -la data/cifar-10-batches-py/{batch}"))
+      with open(f"/home/pt/hacking/vision-stuff/data/cifar-10-batches-py/{batch}", "rb") as f:
         data = pickle.load(f, encoding="latin1") 
         self.x_data.extend(data["data"])
         self.y_data.extend(data["labels"])
@@ -123,7 +125,7 @@ class ResNet18New(nn.Module):
         nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
         module.bias.data.zero_() 
 
-def train(config, device):
+def training(config, device='cuda'):
   model = ResNet18New()
   model.to(device)
 
@@ -135,19 +137,19 @@ def train(config, device):
   train_loader = DataLoader(train_ds, batch_size=config['batch_size'], shuffle=True, num_workers=4, pin_memory=True) 
   val_loader = DataLoader(val_ds, batch_size=512, shuffle=False, num_workers=4, pin_memory=True)
   criterion = nn.CrossEntropyLoss()
-  optimizer = optim.SGD(model.parameters(), lr=config['lr'], momentum=['mom'], weight_decay=config['wd'])
+  optimizer = optim.SGD(model.parameters(), lr=config['lr'], momentum=config['mom'], weight_decay=config['wd'])
 
-  checkpoint = session.get_checkpoint() 
-
-  if checkpoint:
-    checkpoint_state = checkpoint.to_dict()
-    start_epoch = checkpoint_state['epoch']
-    model.load_state_dict(checkpoint_state['model_state_dict'])
-    optimizer.load_state_dict(checkpoint_state['optimizer_state_dict'])
+  if train.get_checkpoint():
+    loaded_checkpoint = train.get_checkpoint()
+    with loaded_checkpoint.as_directory() as loaded_checkpoint_dir:
+      checkpoint = torch.load(os.path.join(loaded_checkpoint_dir, 'checkpoint.pt'))
+    start_epoch = checkpoint['epoch']
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
   else:
-    start_epoch = 0
+    start_epoch = 0 
   
-  for epoch in (t:=trange(start_epoch, 20)):
+  for epoch in (t:=trange(start_epoch, 50)):
     running_loss = 0.0
     epoch_steps = 0
     for i, data in enumerate(train_loader):
@@ -166,16 +168,13 @@ def train(config, device):
         running_loss = 0.0
 
     val_loss, val_acc = estimate_loss(model, val_loader, criterion, device)
-    checkpoint_data = {
-      'epoch': epoch,
-      'model_state_dict': model.state_dict(),
-      'optimizer_state_dict': optimizer.state_dict()
-    }
-    checkpoint = Checkpoint.from_dict(checkpoint_data)
-    session.report(
-      {'loss': val_loss, 'accuracy': val_acc},
-      checkpoint=checkpoint
-    )
+    
+    with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
+      path = os.path.join(temp_checkpoint_dir, 'checkpoint.pt')
+      torch.save({'model_state_dict': model.state_dict(), 'opti_state_dict': optimizer.state_dict(), 'epoch': epoch}, path)
+      checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
+      train.report({'loss': val_loss, 'accuracy': val_acc}, checkpoint=checkpoint)
+    
   print('training done')
 
 
@@ -186,49 +185,32 @@ def main(max_num_epochs, num_samples=5):
   "wd": tune.loguniform(1e-3, 1e-2),
   "mom": tune.loguniform(0.5, 0.9),
   "lr": tune.loguniform(1e-4, 1e-1),
-  "batch_size": tune.choice([64, 128, 256, 512, 1024])
+  "batch_size": tune.choice([128, 256, 512])
     }
   
   scheduler = ASHAScheduler(
-    metric='loss',
-    mode='min',
     max_t=max_num_epochs,
     grace_period=1,
     reduction_factor=2
   )
   tuner = tune.Tuner(
-    tune.with_resources(
-      tune.with_parameters(train),
-      resources={'cpu':4, 'gpu':0.25}
-    ),
-    tune_config=tune.TuneConfig(
-      metric='loss',
-      mode='min',
-      scheduler=scheduler,
-      num_samples=num_samples
-    ), 
-    param_space={'config':config, 'device':device}
+    tune.with_resources(tune.with_parameters(training),
+                        resources={'cpu':4, 'gpu':0.25}),
+    tune_config=tune.TuneConfig(metric='loss', mode='min', scheduler=scheduler, num_samples=num_samples), 
+    param_space=config
   )
   
-  # tuner = tune.Tuner(
-  #   partial(train),
-  #   resources_per_trial={'cpu': 4, 'gpu':0.25},
-  #   config=config,
-  #   device=device,
-  #   num_samples=10,
-  #   scheduler=scheduler
-  # )
   results = tuner.fit()
   best_trial = results.get_best_result('loss', 'min')
   print(f"Best trial config: {best_trial.config}")
-  print(f"Best trial final validation loss: {best_trial.last_result['loss']}")
-  print(f"Best trial final validation accuracy: {best_trial.last_result['accuracy']}")
+  print(f"Best trial final validation loss: {best_trial.metrics['loss']}")
+  print(f"Best trial final validation accuracy: {best_trial.metrics['accuracy']}")
 
   best_trained_model = ResNet18New()
   best_trained_model.to(device)
-  best_checkpoint = best_trial.checkpoint.to_air_checkpoint()
-  best_checkpoint_data = best_checkpoint.to_dict()
-  best_trained_model.load_state_dict(best_checkpoint_data['model_state_dict'])
+  checkpoint_path = os.path.join(best_trial.checkpoint.to_directory(), 'checkpoint.pt')
+  checkpoint = torch.load(checkpoint_path)
+  best_trained_model.load_state_dict(checkpoint['model_state_dict'])
   
   test_ds = CiFaData(stage="test", device=device) 
   test_loader = DataLoader(test_ds, batch_size=256, shuffle=False, num_workers=12, pin_memory=True)
@@ -238,5 +220,5 @@ def main(max_num_epochs, num_samples=5):
   
   
 if __name__ == "__main__":
-  main(20)
+  main(40)
   
