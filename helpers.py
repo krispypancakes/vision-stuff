@@ -2,6 +2,42 @@
 import torch
 import numpy as np
 
+
+class CiFaData(Dataset):
+  def __init__(self, dataset_params=None, stage="train", transform=None):
+    self.base_folder = "cifar-10-batches-py"
+    self.dataset_params = dataset_params
+    self.transform = transform
+    if stage == "all":
+      batch_collection = [f"data_batch_{i}" for i in range(1, 6)]
+      batch_collection.append("test_batch")
+    elif stage == "train":
+      batch_collection = [f"data_batch_{i}" for i in range(1, 5)]
+    elif stage == "val":
+      batch_collection = ["data_batch_5"]
+    elif stage == "test":
+      batch_collection = ["test_batch"]
+    else:
+      raise ValueError("Invalid stage, choose from all, train, val, test.")
+    self.x_data = []
+    self.y_data = []
+    for batch in batch_collection:
+      with open(f"../data/cifar-10-batches-py/{batch}", "rb") as f:
+        data = pickle.load(f, encoding="latin1") 
+        self.x_data.extend(data["data"])
+        self.y_data.extend(data["labels"])
+    self.y_data = torch.tensor(self.y_data)
+    if self.dataset_params is not None:
+      self.x_data = normalize_tensor(torch.tensor(np.vstack(self.x_data).reshape(-1, 3, 32, 32)), self.dataset_params) # from list to vstack; results in (N, 3, 32, 32)
+    else:
+      self.x_data = torch.tensor(np.vstack(self.x_data).reshape(-1, 3, 32, 32))
+  def __len__(self):
+    return self.y_data.shape[0]
+  def __getitem__(self, idx):
+    if self.transform:
+      return self.transform(self.x_data[idx]), self.y_data[idx]
+    return self.x_data[idx], self.y_data[idx]
+
 def get_model_size(model):
   param_size = 0
   for param in model.parameters():
