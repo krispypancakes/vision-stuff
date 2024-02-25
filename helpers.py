@@ -1,6 +1,6 @@
 """ useful helpers """
 import torch
-
+import numpy as np
 
 def get_model_size(model):
   param_size = 0
@@ -28,12 +28,25 @@ def estimate_loss(model, loader, crit, device):
     correct += (predictions.argmax(dim=1) == y).sum().item()
   return total_loss/total_count, correct/total_count
 
-def normalize_tensor(tensor, _torch=True):
-  if type(tensor) == torch.tensor:
-    min_val = torch.min(tensor)
-    max_val = torch.max(tensor)
-  else:
-    # what we do with tiny tensors
-    min_val = tensor.min()
-    max_val = tensor.max()
-  return (tensor - min_val) / (max_val - min_val)
+def get_parameters(loader):
+  data = None
+  print('loading the dataset')
+  for x, _ in loader:
+    data = torch.cat([data, x.float()]) if data is not None else x.float()
+  print('calculate the parameters')
+  mean_r = data[:,0,:,:].mean()
+  mean_g = data[:,1,:,:].mean()
+  mean_b = data[:,2,:,:].mean()
+  std_r = data[:,0,:,:].std()
+  std_g = data[:,1,:,:].std()
+  std_b = data[:,2,:,:].std()
+  params = (torch.tensor([x/255.0 for x in [mean_r, mean_g, mean_b]]), torch.tensor([x/255.0 for x in [std_r, std_g, std_b]]))
+  return params
+    
+def normalize_tensor(tensor, params):
+  """ normalizes and standardizes tensor using (normalized) mean, std of specifig dataset """
+  _mean, _std = params
+  _mean_tensor = _mean.reshape(1, 3, 1, 1)
+  _std_tensor = _std.reshape(1, 3, 1, 1)
+  norm_tensor = (tensor - _mean_tensor) / _std_tensor
+  return norm_tensor
