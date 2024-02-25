@@ -143,7 +143,7 @@ def main():
     t.set_description(f"epoch {i+1} | training loss: {losses[-1]:.4f} | validation loss: {val_losses[-1]:.4f}")
   duration = time.time() - time1
   # test_loss = estimate_loss(model, test_loader, criterion, device) 
-  print(f'final validation loss is : {val_loss}')
+  print(f'final validation loss is : {val_loss} | final validation accuracy is : {val_acc}')
   print(f'this took {duration / 60:.4f} minutes for training')
   # store results; just pickle it for now.
   with open('training_run.pickle', 'wb') as f:
