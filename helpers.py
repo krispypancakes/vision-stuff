@@ -1,11 +1,12 @@
 """ useful helpers """
 import torch
 from torch.utils.data import Dataset
+import pickle
 import numpy as np
 
 
 class CiFaData(Dataset):
-  def __init__(self, dataset_params=None, stage="train", transform=None):
+  def __init__(self, path, dataset_params=None, stage="train", transform=None):
     self.base_folder = "cifar-10-batches-py"
     self.dataset_params = dataset_params
     self.transform = transform
@@ -23,7 +24,7 @@ class CiFaData(Dataset):
     self.x_data = []
     self.y_data = []
     for batch in batch_collection:
-      with open(f"../data/cifar-10-batches-py/{batch}", "rb") as f:
+      with open(path + self.base_folder + '/' + batch, 'rb') as f:
         data = pickle.load(f, encoding="latin1") 
         self.x_data.extend(data["data"])
         self.y_data.extend(data["labels"])
