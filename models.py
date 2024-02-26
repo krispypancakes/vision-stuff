@@ -60,7 +60,7 @@ class ComputeBlock(nn.Module):
           if layer.bias is not None:
             layer.bias.data.zero_()
   
-class ResNet18New(nn.Module):
+class ResNet18(nn.Module):
   def __init__(self):
     super().__init__()
     self.resnet = nn.Sequential(
