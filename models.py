@@ -70,6 +70,7 @@ class ResNet18(nn.Module):
       ComputeBlock(128,256, stride=2), # (B,256,2,2)
       ComputeBlock(256, 512, stride=2), # (B,512,1,1)
       nn.AdaptiveAvgPool2d((1,1)),
+      nn.Dropout(),
       nn.Flatten(start_dim=1), # (B,512)
       nn.Linear(512, 10) # (B, 10)
     )
