@@ -4,6 +4,14 @@ from torch.utils.data import Dataset
 import pickle
 import numpy as np
 
+    
+def normalize_tensor(tensor, params):
+  """ normalizes and standardizes tensor using (normalized) mean, std of specifig dataset """
+  _mean, _std = params
+  _mean_tensor = _mean.reshape(1, 3, 1, 1)
+  _std_tensor = _std.reshape(1, 3, 1, 1)
+  norm_tensor = (tensor - _mean_tensor) / _std_tensor
+  return norm_tensor
 
 class CiFaData(Dataset):
   def __init__(self, path, dataset_params=None, stage="train", transform=None):
@@ -78,13 +86,5 @@ def get_parameters(loader):
   std_r = data[:,0,:,:].std()
   std_g = data[:,1,:,:].std()
   std_b = data[:,2,:,:].std()
-  params = (torch.tensor([x/255.0 for x in [mean_r, mean_g, mean_b]]), torch.tensor([x/255.0 for x in [std_r, std_g, std_b]]))
+  params = torch.tensor([mean_r, mean_g, mean_b]), torch.tensor([std_r, std_g, std_b])
   return params
-    
-def normalize_tensor(tensor, params):
-  """ normalizes and standardizes tensor using (normalized) mean, std of specifig dataset """
-  _mean, _std = params
-  _mean_tensor = _mean.reshape(1, 3, 1, 1)
-  _std_tensor = _std.reshape(1, 3, 1, 1)
-  norm_tensor = (tensor - _mean_tensor) / _std_tensor
-  return norm_tensor
